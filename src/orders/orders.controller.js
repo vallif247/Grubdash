@@ -30,17 +30,22 @@ function validateOrder(req, res, next) {
     if (!dish.quantity || !Number.isInteger(dish.quantity) || dish.quantity <= 0)
     next({ status: 400, message: `Dish ${i} must have a quantity that is an integer greater than 0`})
   }
-  next()
-}
-
-function newOrder(req, res) {
-  const {data: { deliverTo, mobileNumber, dishes, quantity } = {} } = req.body;
-  const newOrd = {
-    id: nextId(),
+  res.locals.validatedOrder = {
     deliverTo,
     mobileNumber,
     dishes,
     quantity,
+  };
+
+  next()
+}
+
+function newOrder(req, res) {//for validation middleware is
+  //there any way i can use res.locals?
+  const {data: { deliverTo, mobileNumber, dishes, quantity } = {} } = req.body;
+  const newOrd = {
+    id: nextId(),
+    ...res.locals.validatedOrder,
   };
   orders.push(newOrd)
   res.status(201).json({ data: newOrd })
@@ -52,18 +57,19 @@ function idExists(req, res, next) {
   if (!foundOrder) {
     return res.status(404).json({error: `id ${orderId} not found`})
   }
+  res.locals.foundOrder = foundOrder;
   next();
 }
 
 function getOrder(req, res) {
   const orderId = req.params.orderId;
-  const foundOrder = orders.find((order) => order.id === orderId);
+  const foundOrder = res.locals.foundOrder
   res.status(200).json({ data: foundOrder })
 }
 
 function update(req, res) {
   const orderId = req.params.orderId;
-  const foundOrder = orders.find((order) => order.id === orderId);
+  const foundOrder = res.locals.foundOrder;
   const { data: { id, deliverTo, mobileNumber, dishes, quantity, status } = {} } = req.body;
   if (!status || status === "invalid") {
     return res.status(400).json({ error: "status is missing."})
@@ -81,7 +87,7 @@ function update(req, res) {
 
 function remove(req, res) {
   const orderId = req.params.orderId;
-  const foundOrder = orders.find((order) => order.id === orderId);
+  const foundOrder = res.locals.foundOrder;
   const index = orders.findIndex((order) => order.id === orderId)
   if (!foundOrder) {
     

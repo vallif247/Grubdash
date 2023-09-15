@@ -7,12 +7,14 @@ router
   .route("/")
   .post(controller.createDish)
   .get(controller.listDishes)
+  .all(methodNotAllowed)
   
 router
   .route("/:dishId")
   .get(controller.readDish)
   .put(controller.updateDish)
-  .delete(methodNotAllowed)
+  .all(methodNotAllowed)
+
 
 
 module.exports = router;

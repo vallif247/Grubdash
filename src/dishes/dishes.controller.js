@@ -15,10 +15,11 @@ function idExists(req, res, next) {//middleware to find if Id
   if (!foundId) {
     next({status: 404, message:`Dish does not exist ${dishId}.` })
   }
+    res.locals.foundId = foundId
     next()
 }
 
-function includesName(req, res, next) {
+function validateOrder(req, res, next) {
   const { data: { id, name, description, price, image_url } = {} } = req.body;
   const newDish = {
     id: nextId,
@@ -27,57 +28,28 @@ function includesName(req, res, next) {
     price, 
     image_url,
   };
-    if (!name || name === "") {
-    next({status:400, message:"Dish must include a name"})
+  if (!name || name === "") {
+    next({status:400, message:"Dish must include a name"});
   }
-  next()
-}
-
-function includesDescription(req, res, next) {
-  const { data: { id, name, description, price, image_url } = {} } = req.body;
-  const newDish = {
-    id: nextId,
-    name,
-    description, 
-    price, 
-    image_url,
-  };
   if (!description || description === "") {
     next({status:400, message:"Dish must include a description"})
   }
-  next()
-}
-
-function includesPrice(req, res, next) {
-  const { data: { id, name, description, price, image_url } = {} } = req.body;
-  const newDish = {
-    id: nextId,
-    name,
-    description, 
-    price, 
-    image_url,
-  };
-    if (!price) {
+  if (!price) {
     next({status: 400, message:"Dish must include a price"})
   }
-    if (price <= 0 || !Number.isInteger(price)) {
+  if (price <= 0 || !Number.isInteger(price)) {
     next({status: 400, message:"Dish must have a price that is an integer greater than 0"})
-   }
-  next()
-}
-
-function includesImageUrl(req, res, next) {
-  const { data: { id, name, description, price, image_url } = {} } = req.body;
-  const newDish = {
-    id: nextId,
-    name,
-    description, 
-    price, 
-    image_url,
-  };
+  }
   if (!image_url || image_url === "") {
     next({status:400, message:"Dish must include a image_url" })
   }
+  res.locals.validatedOrder = {
+    name,
+    description,
+    price,
+    image_url,
+  };
+
   next()
 }
 
@@ -85,10 +57,7 @@ function createDish(req, res) {
    const { data: { name, description, price, image_url } = {} } = req.body;
   const newDish = {
     id: nextId(),
-    name,
-    description, 
-    price, 
-    image_url,
+    ...res.locals.validatedOrder,
   };
   dishes.push(newDish);
   res.status(201).json({ data: newDish });
@@ -96,13 +65,13 @@ function createDish(req, res) {
 
 function readDish(req, res) {
   const dishId = req.params.dishId;
-  const foundDish = dishes.find((dish) => dish.id === dishId)
+  const foundDish = res.locals.foundId
   res.status(200).json({ data: foundDish })
 }
 
 function updateDish(req, res) {
   const dishId = req.params.dishId;
-    const findDish = dishes.find((dish) => (dish.id === dishId));
+    const findDish = res.locals.foundId;
   const { data: { id, name, description, price, image_url } = {} } = req.body;
   
   if (id && id !== dishId) {
@@ -123,7 +92,7 @@ function listDishes(req, res) {
 }
 
 module.exports = {
-  createDish: [includesName, includesDescription, includesPrice, includesImageUrl, createDish],
+  createDish: [validateOrder, createDish],
   readDish: [idExists, readDish],
   updateDish: [idExists, updateDish],
   listDishes,
